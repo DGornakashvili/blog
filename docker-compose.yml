@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  application:
+    build:
+      context: ./config/php
+      args:
+        - USER_ID
+        - GROUP_ID
+    restart: unless-stopped
+    container_name: application
+    expose:
+      - ${PHP_PORT}
+    networks:
+      - backend
+    volumes:
+      - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
+      - ./config/php/config.ini:/usr/local/etc/php/conf.d/config.ini
+    working_dir: ${APP_PATH_CONTAINER}
+
+  nginx:
+    image: nginx:latest
+    networks:
+      - backend
+    ports:
+      - ${HTTP_PORT}:${HTTP_PORT}
+    restart: unless-stopped
+    container_name: nginx
+    working_dir: ${APP_PATH_CONTAINER}
+    volumes:
+      - ./config/nginx/conf.d/:/etc/nginx/conf.d/
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
+
+  db:
+    image: postgres:9.6-alpine
+    restart: unless-stopped
+    container_name: db
+    ports:
+      - 5432:5432
+    networks:
+      - backend
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+
+networks:
+  backend:
+    driver: bridge
